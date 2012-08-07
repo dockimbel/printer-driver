@@ -58,6 +58,7 @@ The format used for describing documents by the printer scheme is the [DRAW](htt
     box
     arc
     font
+    pen
     fill-pen
     image
    
