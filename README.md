@@ -49,7 +49,7 @@ for example, from the console:
     
 Note: it would be nicer if we would use `get-modes` on the port to retrieve that instead of tapping directly into the global `printer` context. It's just a few more lines of code, any taker? :-)
 
-The additional block after each string is for storing some flags. `local` or `remote` flags are used to indicate if the printer is locally connected or on a remote computer. You can then use one of the string name reported here as argument to `printer` option described above. Please `copy` this blocks and strings if you need to modify them (it's just an internal data structure exposed).
+The additional block after each string is for storing some flags. `local` or `remote` flags are used to indicate if the printer is locally connected or on a remote computer. You can then use one of the string name reported here as argument to `printer` option described above. Please `copy` this block and strings if you need to modify them (it's just an internal data structure exposed).
 
 In order to print multiple pages, or to stream pages to printer one by one, it is possible to manually operate the printer port:
 
