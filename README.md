@@ -17,7 +17,7 @@ If you have cloned locally this repository, enter the repo and just do it!
 	
 Alternatively, you can also install it from network when needed:
 
-    do http://raw.github.com/dockimbel/printer-driver/master/printer-scheme.r
+    do https://raw.github.com/dockimbel/printer-driver/master/printer-scheme.r
 
 The driver installs a new printer:// scheme. Usage is then pretty simple:
 
