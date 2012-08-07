@@ -29,6 +29,27 @@ or
     <options> are:
         printer "<name>"	: use a specific printer instead of default one
         doc-name "<title>"  : give a title to the document
+        
+It is also possible to list all the printers available using:
+
+    printer/enum
+    
+for example, from the console:
+
+    >> probe printer/enum
+    [
+        "Samsung ML-1670 Series" [none local]
+        "Microsoft XPS Document Writer" [none local]
+        "Microsoft Office Document Image Writer" [none local]
+        "Lexmark 3500-4500 Series" [none local]
+        "Fax" [none local]
+        "EcoFax" [none local]
+        "Bullzip PDF Printer" [none local]
+    ]
+    
+Note: it would be nicer if we would use `get-modes` on the port to retrieve that instead of tapping directly into the global `printer` context. It's just a few more lines of code, any taker? :-)
+
+The additional block after each string is for storing some flags. `local` or `remote` flags are used to indicate if the printer is locally connected or on a remote computer. You can then use one of the string name reported here as argument to `printer` option described above. Please `copy` this blocks and strings if you need to modify them (it's just an internal data structure exposed).
 
 In order to print multiple pages, or to stream pages to printer one by one, it is possible to manually operate the printer port:
 
@@ -46,6 +67,11 @@ In order to print multiple pages, or to stream pages to printer one by one, it i
 	insert p 'end-doc		; flush all to printer and close document to print
     close p					; close printer port
     
+In case you want to hack something in the driver, you can start by looking at the platform-specific `locals` object!, especially `caps` and `scale` properties:
+
+    p: open printer://
+    probe p/locals
+    close p
 
 How to create a document to print?
 ----------------------------------
