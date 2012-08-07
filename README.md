@@ -76,7 +76,7 @@ In case you want to hack something in the driver, you can start by looking at th
 How to create a document to print?
 ----------------------------------
 
-The format used for describing documents by the printer scheme is the [DRAW](http://www.rebol.com/docs/draw.html) dialect, or rather a subset of it. The following DRAW commands are accepted:
+The format used for describing documents used by the printer scheme is the [DRAW](http://www.rebol.com/docs/draw.html) dialect, or rather a subset of it. Only the following DRAW commands are accepted:
 
     text
     line
