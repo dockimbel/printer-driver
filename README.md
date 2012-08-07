@@ -22,7 +22,8 @@ Alternatively, you can also install it from network when needed:
 The driver installs a new printer:// scheme. Usage is then pretty simple:
 
     write printer:// <document>
-or    
+or
+
     write/custom printer:// <document> [<options>]
     
     <options> are:
@@ -68,7 +69,7 @@ An addition has been made to the dialect for specifying a custom area of multipl
     <position> : pair! value, position of left top corner of the text area
     <size>     : pair! value
     
-Note: I can't remember why I haven't used `area` word instead of `text-box`...
+Note: I can't remember why I haven't used the more common `area` word instead of `text-box`...
 
 Simple Example
 --------------
@@ -85,3 +86,6 @@ License
 -------
 
 [BSD](http://www.opensource.org/licenses/bsd-3-clause) license.
+
+
+Enjoy!
