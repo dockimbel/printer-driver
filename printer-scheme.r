@@ -1478,6 +1478,7 @@ make root-protocol [
 		printer/start-page
 		emit spec
 		printer/end-page
+		;-- View preview in a window, not very accurate, but works
 		;forall spec [if pair? spec/1 [change spec spec/1 * 2.5]]
 		;spec: head spec
 		;view/new layout compose/deep [
