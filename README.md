@@ -1,7 +1,7 @@
 printer-driver
 ==============
 
-Printer driver for REBOL, supports Windows and UNIX (through CUPS)
+Printer driver for REBOL, supports Windows and UNIX (through CUPS), so it runs fine both on Linux and MacOS X too.
 
 Requirements
 ------------
