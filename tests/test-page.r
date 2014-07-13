@@ -6,7 +6,7 @@ REBOL [
 
 do %../printer-scheme.r
 
-logo-si:  	load read-thru http://softinnov.fr/img/logo.png
+logo-red:  	load read-thru http://static.red-lang.org/red-logo.png
 logo-r:   	load read-thru http://www.rebol.com/graphics/reb-logo.gif
 logo-win: 	load read-thru http://www.cheyenne-server.org/img/logo-win32.gif
 logo-linux: load read-thru http://www.cheyenne-server.org/img/logo-linux.gif
@@ -29,7 +29,7 @@ f-gold:	  make f-blue 	 [color: gold / 1.2 name: "Courier New"]
 f-green:  make f-blue 	 [color: green / 1.2 name: "Times New Roman"]
 
 demo-doc: [
-	image logo-si 11x10
+	image logo-red 11x10
 	image logo-r 165x10
 	pen black
 	font f-head
