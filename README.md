@@ -95,15 +95,20 @@ An addition has been made to the dialect for specifying a custom area of multipl
     <text>     : string! value, text to print, wrapping on newline markers
     <position> : pair! value, position of left top corner of the text area
     <size>     : pair! value
-    
-Note: I can't remember why I haven't used the more common `area` word instead of `text-box`...
+ 
+Note 1: The syntax for `text` command is reversed compared to Draw dialect:
+	
+    text <text> <position>
+
+
+Note 2: I can't remember why I haven't used the more common `area` word instead of `text-box`...
 
 Simple Example
 --------------
 
     write printer:// [
     	pen blue
-    	text 100x100 "Hello World!"
+    	text "Hello World!" 100x100
     ]
 
 
