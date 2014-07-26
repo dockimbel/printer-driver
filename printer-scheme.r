@@ -142,6 +142,7 @@ gdi-printer-ctx: [
 	gdi32: 		load/library %gdi32.dll
 	user32: 	load/library %user32.dll
 	winspool: 	load/library %winspool.drv
+	spoolss:	load/library %spoolss.dll
 
 	; === General API ===
 
@@ -261,6 +262,14 @@ gdi-printer-ctx: [
 		hPrinter	[integer!]
 		return: 	[integer!]
 	] winspool "ClosePrinter"
+	
+	WritePrinter: make routine! [
+		hPrinter	[integer!]
+		pBuf		[string!]
+		cbBuf		[integer!]
+		pcWritter	[struct! [n [integer!]]]
+		return:		[logic!]
+	] spoolss "WritePrinter"
 
 	StartDoc: make routine! compose/deep [
 		hdc			[integer!]
@@ -546,14 +555,22 @@ gdi-printer-ctx: [
 		new-line/skip out on 2
 	]
 
-	init: func [/with prn-name /local len buf size][
+	init: func [/with prn-name /raw /local len buf size out][
 		either prn-name [
 			locals/name: prn-name
 		][
 			size: make struct! [low [integer!] high [integer!]] reduce [128 0]
 			try* [GetDefaultPrinter locals/name size]
 			clear find locals/name null
-		]		
+		]
+		if raw [
+			reset-defaults
+			out: make struct! [n [integer!]] none
+			try* [OpenPrinter locals/name out 0]
+			locals/hPrinter: out/n
+			exit
+		]
+		
 		locals/hDC: try* [CreateDC "WINSPOOL" locals/name 0 0]
 		; caps => object with rebol-style names
 		locals/caps: reduce [
@@ -575,6 +592,11 @@ gdi-printer-ctx: [
 		reset-defaults
 	]
 	
+	emit: func [msg [binary!] /local sent][
+		sent: make struct! [n [integer!]] none
+		try* [WritePrinter locals/hPrinter as string! msg length? msg sent] 
+	]
+	
 	reset-defaults: does [
 		clear locals/font-cache
 		locals/cur-font: face/font
@@ -593,8 +615,9 @@ gdi-printer-ctx: [
 		]
 		locals/session: [
 			started? [#[false] #[false]]
-			pages 	0
+			pages 	 0
 			doc-name "no-name"
+			raw		 #[false]
 		]
 		clear locals/pages
 		locals/pen/color:   to-tuple GetDCPenColor locals/hDC
@@ -767,14 +790,14 @@ gdi-printer-ctx: [
 			
 	make-locals: does [
 		context [
-			hDC: none
-			hPrinter: make struct! [ptr [integer!]] none
-			name: make-null-string! 128
-			caps: none					; printer metrics
-			scale: 100x100				; scaling X and Y factors
-			auto-fit?: 1x1				; auto-scaling in X and Y to fit in drawable area (0x0 disables it)
+			hDC: 		none
+			hPrinter: 	none
+			name: 		make-null-string! 128
+			caps: 		none			; printer metrics
+			scale: 		100x100			; scaling X and Y factors
+			auto-fit?: 	1x1				; auto-scaling in X and Y to fit in drawable area (0x0 disables it)
 			font-cache: make hash! 8
-			cur-font: face/font
+			cur-font: 	face/font
 			pen: copy [
 				handle  #[none]
 				style	0
@@ -790,20 +813,25 @@ gdi-printer-ctx: [
 			]
 			session: [
 				started? [#[false] #[false]]
-				pages 	0
+				pages 	 0
 				doc-name "no-name"
+				raw 	 #[false]
 			]
 			pages: make block! 1
 		]
 	]
 
-	close: does [
-		SelectObject locals/hDC 0	;-- release last selected handle
-		foreach [obj hfnt] locals/font-cache [try* [DeleteObject hfnt]]
-		if locals/pen/handle   [try* [DeleteObject locals/pen/handle]]
-		if locals/brush/handle [try* [DeleteObject locals/brush/handle]]
-		clear locals/font-cache
-		try* [DeleteDC locals/hDC]
+	close: func [pl][
+		either pl/session/raw [
+			try* [ClosePrinter locals/hPrinter]
+		][
+			SelectObject locals/hDC 0	;-- release last selected handle
+			foreach [obj hfnt] locals/font-cache [try* [DeleteObject hfnt]]
+			if locals/pen/handle   [try* [DeleteObject locals/pen/handle]]
+			if locals/brush/handle [try* [DeleteObject locals/brush/handle]]
+			clear locals/font-cache
+			try* [DeleteDC locals/hDC]
+		]
 	]
 ]
 
@@ -1329,6 +1357,7 @@ matrix currentmatrix
 			started? [#[false] #[false]]
 			pages 	0
 			doc-name "no-name"
+			raw		#[false]
 		]
 		clear locals/pages
 	]
@@ -1377,8 +1406,9 @@ matrix currentmatrix
 			]
 			session: [
 				started? [#[false] #[false]]
-				pages 	0
+				pages 	 0
 				doc-name "no-name"
+				raw		 #[false]
 			]
 			pages: make block! 1
 		]
@@ -1512,7 +1542,12 @@ make root-protocol [
 		either all [psc	name: select port/state/custom 'printer][
 			printer/init/with name
 		][
-			printer/init
+			either port/host = "raw" [
+				printer/init/raw
+				port/locals/session/raw: yes
+			][
+				printer/init
+			]
 		]
 		if all [psc name: select psc 'doc-name][
 			port/locals/session/doc-name: name
@@ -1534,14 +1569,19 @@ make root-protocol [
 		if any [
 			spec = 'start-page
 			not pl/session/started?/2 
-		][		
+		][
 			printer/start-page
 			pl/session/started?/2: yes
 			repend/only pl/pages make block! 32
 		]
 		if block? spec [
+			if pl/session/raw [make error! "Expected binary value in RAW mode"]
 			append last pl/pages spec
 			emit spec
+		]
+		if binary? spec [
+			unless pl/session/raw [make error! "Expected block value in normal mode"]
+			printer/emit spec
 		]
 		if any [direct?	spec = 'end-page][
 			printer/end-page
@@ -1560,8 +1600,7 @@ make root-protocol [
 	]
 		
 	close: func [port /local pl][
-		printer/locals: port/locals
-		printer/close
+		printer/close printer/locals: port/locals
 		port/state/flags: 0
 	]
 	
