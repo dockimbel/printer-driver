@@ -142,7 +142,7 @@ gdi-printer-ctx: [
 	gdi32: 		load/library %gdi32.dll
 	user32: 	load/library %user32.dll
 	winspool: 	load/library %winspool.drv
-	spoolss:	load/library %spoolss.dll
+;	spoolss:	load/library %spoolss.dll
 
 	; === General API ===
 
@@ -269,7 +269,7 @@ gdi-printer-ctx: [
 		cbBuf		[integer!]
 		pcWritter	[struct! [n [integer!]]]
 		return:		[logic!]
-	] spoolss "WritePrinter"
+	] winspool "WritePrinter"
 
 	StartDoc: make routine! compose/deep [
 		hdc			[integer!]
@@ -528,7 +528,7 @@ gdi-printer-ctx: [
 		obj/dirty?: no
 	]
 
-	enum: has [out buf flags needed ret cmd pi4 len buf*][
+	enum: list: has [out buf flags needed ret cmd pi4 len buf*][
 		out: 	make block! 4
 		buf: 	make-null-string! 1024
 		needed: make struct! [n [integer!]] none
