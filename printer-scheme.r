@@ -268,12 +268,34 @@ gdi-printer-ctx: [
 		pBuf		[string!]
 		cbBuf		[integer!]
 		pcWritter	[struct! [n [integer!]]]
-		return:		[logic!]
+		return:		[integer!]
 	] winspool "WritePrinter"
+	
+	StartDocPrinter: make routine! compose/deep [
+		hPrinter	[integer!]
+		level		[integer!]
+		lpdi		[struct! [(struct-doc-info)]]
+		return: 	[integer!]
+	] winspool "StartDocPrinterA"
+	
+	StartPagePrinter: make routine! [
+		hPrinter	[integer!]
+		return: 	[integer!]
+	] winspool "StartPagePrinter"
+	
+	EndPagePrinter: make routine! [
+		hPrinter	[integer!]
+		return: 	[integer!]
+	] winspool "EndPagePrinter"
+	
+	EndDocPrinter: make routine! [
+		hPrinter	[integer!]
+		return: 	[integer!]
+	] winspool "EndDocPrinter"
 
 	StartDoc: make routine! compose/deep [
 		hdc			[integer!]
-		lpdi		[struct! [(struct-doc-info)]]   
+		lpdi		[struct! [(struct-doc-info)]]
 		return: 	[integer!]
 	] gdi32 "StartDocA"
 
@@ -555,7 +577,7 @@ gdi-printer-ctx: [
 		new-line/skip out on 2
 	]
 
-	init: func [/with prn-name /raw /local len buf size out][
+	init: func [raw? /with prn-name /local len buf size out][
 		either prn-name [
 			locals/name: prn-name
 		][
@@ -563,7 +585,7 @@ gdi-printer-ctx: [
 			try* [GetDefaultPrinter locals/name size]
 			clear find locals/name null
 		]
-		if raw [
+		if raw? [
 			reset-defaults
 			out: make struct! [n [integer!]] none
 			try* [OpenPrinter locals/name out 0]
@@ -592,9 +614,9 @@ gdi-printer-ctx: [
 		reset-defaults
 	]
 	
-	emit: func [msg [binary!] /local sent][
+	emit-raw: func [msg [binary!] /local sent][
 		sent: make struct! [n [integer!]] none
-		try* [WritePrinter locals/hPrinter as string! msg length? msg sent] 
+		try* [WritePrinter locals/hPrinter as-string msg length? msg sent] 
 	]
 	
 	reset-defaults: does [
@@ -778,15 +800,40 @@ gdi-printer-ctx: [
 			either mm [caps/VERTRES * 254 / caps/LOGPIXELSY / 10][caps/VERTRES]
 	]
 
-	start-doc:	func [/title name][
+	start-doc: func [raw? [logic!] /title name][
 		if title [DOC_INFO/lpszDocName: name]
 		DOC_INFO/cbSize: length? third DOC_INFO
-		try* [StartDoc locals/hDC DOC_INFO]
-		locals/cur-font: face/font
+		
+		either raw? [
+			try* [StartDocPrinter locals/hPrinter 1 DOC_INFO]
+		][
+			try* [StartDoc locals/hDC DOC_INFO]
+			locals/cur-font: face/font
+		]
 	]
-	start-page: does [try* [StartPage locals/hDC]]
-	end-page:	does [try* [EndPage locals/hDC]]
-	end-doc:	does [try* [EndDoc locals/hDC]]
+	start-page: func [raw? [logic!]][
+		either raw? [
+			try* [StartPagePrinter locals/hPrinter]
+		][
+			try* [StartPage locals/hDC]
+		]
+	]
+	
+	end-page: func [raw? [logic!]][
+		either raw? [
+			try* [EndPagePrinter locals/hPrinter]
+		][
+			try* [EndPage locals/hDC]
+		]
+	]
+	
+	end-doc: func [raw? [logic!]][
+		either raw? [
+			try* [EndDocPrinter locals/hPrinter]
+		][
+			try* [EndDoc locals/hDC]
+		]
+	]
 			
 	make-locals: does [
 		context [
@@ -1321,7 +1368,7 @@ matrix currentmatrix
 		new-line/skip new on 2
 	]
 
-	init: func [/with prn-name /local ppd p][
+	init: func [raw? /with prn-name /local ppd p][
 		all [
 			not with
 			none? prn-name: cupsGetDefault
@@ -1534,21 +1581,20 @@ make root-protocol [
 		port
 	]
 
-	open: func [port /local svc psc name][
+	open: func [port /local svc psc name raw?][
 		printer/locals: port/locals
 		port/state/flags: port/state/flags or port-flags
 
 		psc: port/state/custom
+		raw?: port/host = "raw"
+		
 		either all [psc	name: select port/state/custom 'printer][
-			printer/init/with name
+			printer/init/with raw? name
 		][
-			either port/host = "raw" [
-				printer/init/raw
-				port/locals/session/raw: yes
-			][
-				printer/init
-			]
+			printer/init raw?
 		]
+		if raw? [port/locals/session/raw: yes]
+		
 		if all [psc name: select psc 'doc-name][
 			port/locals/session/doc-name: name
 		]
@@ -1556,39 +1602,41 @@ make root-protocol [
 		port
 	]
 	
-	insert: func  [port spec [word! block!] /local pl direct?][
+	insert: func  [port spec [word! block!] /local pl direct? raw?][
 		pl: printer/locals: port/locals
+		raw?: pl/session/raw
+		
 		if any [
 			spec = 'start-doc
 			not pl/session/started?/1 
 		][
 			direct?: yes
-			printer/start-doc/title pl/session/doc-name
+			printer/start-doc/title raw? pl/session/doc-name
 			pl/session/started?/1: yes
 		]
 		if any [
 			spec = 'start-page
 			not pl/session/started?/2 
 		][
-			printer/start-page
+			printer/start-page raw?
 			pl/session/started?/2: yes
 			repend/only pl/pages make block! 32
 		]
 		if block? spec [
-			if pl/session/raw [make error! "Expected binary value in RAW mode"]
+			if raw? [make error! "Expected binary value in RAW mode"]
 			append last pl/pages spec
 			emit spec
 		]
 		if binary? spec [
-			unless pl/session/raw [make error! "Expected block value in normal mode"]
-			printer/emit spec
+			unless raw? [make error! "Expected block value in normal mode"]
+			printer/emit-raw spec
 		]
 		if any [direct?	spec = 'end-page][
-			printer/end-page
+			printer/end-page raw?
 			pl/session/started?/2: no
 		]
 		if any [direct? spec = 'end-doc][
-			printer/end-doc
+			printer/end-doc raw?
 			pl/session/started?/1: no
 			printer/reset-defaults
 		]
