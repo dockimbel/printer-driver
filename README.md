@@ -56,16 +56,16 @@ In order to print multiple pages, or to stream pages to printer one by one, it i
     p: open printer://
 	insert p 'start-doc		; declare a new document to print
 	
-	insert p 'start-page	; open a new page
+	insert p 'start-page		; open a new page
 	insert p page1			; print content of the page 1
 	insert p 'end-page		; close page
 	
-	insert p 'start-page	; open a new page
+	insert p 'start-page		; open a new page
 	insert p page2			; print content of the page 2
 	insert p 'end-page		; close page
 
 	insert p 'end-doc		; flush all to printer and close document to print
-    close p					; close printer port
+    close p				; close printer port
     
 In case you want to hack something in the driver, you can start by looking at the platform-specific `locals` object!, especially `caps` and `scale` properties:
 
